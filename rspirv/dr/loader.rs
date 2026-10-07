@@ -135,7 +135,9 @@ impl binary::Consumer for Loader {
             spirv::Op::ExtInstImport => self.module.ext_inst_imports.push(inst),
             spirv::Op::MemoryModel => self.module.memory_model = Some(inst),
             spirv::Op::EntryPoint => self.module.entry_points.push(inst),
-            spirv::Op::ExecutionMode => self.module.execution_modes.push(inst),
+            spirv::Op::ExecutionMode | spirv::Op::ExecutionModeId => {
+                self.module.execution_modes.push(inst)
+            }
             spirv::Op::String
             | spirv::Op::SourceExtension
             | spirv::Op::Source
@@ -282,8 +284,23 @@ pub fn load_words(binary: impl AsRef<[u32]>) -> ParseResult<dr::Module> {
 
 #[cfg(test)]
 mod tests {
+    use crate::binary::Assemble;
     use crate::dr;
     use crate::spirv;
+
+    #[test]
+    fn test_load_execution_mode_id() {
+        use spirv::ExecutionMode::{FPFastMathDefault, OriginUpperLeft};
+
+        // Loading preserves mode order and ID operands without resolving their definitions.
+        let mut b = dr::Builder::new();
+        let (entry, float, flags) = (b.id(), b.id(), b.id());
+        b.execution_mode(entry, OriginUpperLeft, []);
+        b.execution_mode_id(entry, FPFastMathDefault, [float, flags]);
+        let module = b.module();
+        let loaded = dr::load_words(module.assemble()).unwrap();
+        assert_eq!(module.execution_modes, loaded.execution_modes);
+    }
 
     #[test]
     fn test_load_variable() {

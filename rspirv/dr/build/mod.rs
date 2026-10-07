@@ -588,7 +588,8 @@ impl Builder {
             dr::Operand::ExecutionMode(execution_mode),
         ];
         for v in params.as_ref() {
-            operands.push(dr::Operand::LiteralBit32(*v));
+            // Use ID operands so transformations can track and remap these references.
+            operands.push(dr::Operand::IdRef(*v));
         }
 
         let inst = dr::Instruction::new(spirv::Op::ExecutionModeId, None, None, operands);
